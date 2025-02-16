@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Video Player</title>
+    <!-- Иконка сайта -->
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/128/2859/2859706.png">
+    <!-- Подключаем Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Основные стили */
+        :root {
+            --bg-color: #0f0f0f; /* YouTube-стиль по умолчанию */
+            --text-color: #fff;
+            --primary-color: #ff0000; /* Красный, как у YouTube */
+            --input-bg: #121212;
+            --card-bg: #212121;
+            --card-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Логотип и название сайта */
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid #333;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+            cursor: pointer; /* Добавляем курсор при наведении */
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        /* Контейнер для ввода и кнопок */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid #333;
+            flex-wrap: wrap;
+        }
+
+        #video-input, #time-input {
+            width: 200px;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 20px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            font-size: 1rem;
+            outline: none;
+        }
+
+        #video-input::placeholder, #time-input::placeholder {
+            color: #888;
+        }
+
+        #add-video-btn, #add-multiple-videos-btn, #play-all-btn, #stop-all-btn, #seek-all-btn, #delete-all-btn, #theme-select, #language-select, #video-count {
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        #add-video-btn:hover, #add-multiple-videos-btn:hover, #play-all-btn:hover, #stop-all-btn:hover, #seek-all-btn:hover, #delete-all-btn:hover {
+            opacity: 0.9;
+        }
+
+        #theme-select, #language-select, #video-count {
+            background-color: #333;
+        }
+
+        #add-multiple-videos-btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        /* Слайдер громкости */
+        #volume-slider {
+            width: 100px;
+            margin: 0 10px;
+        }
+
+        #volume-label {
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        /* Кнопка "Повторять все видео" */
+        #repeat-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background-color: #555; /* Цвет по умолчанию (неактивное состояние) */
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #repeat-container.active {
+            background-color: var(--primary-color); /* Цвет активного состояния */
+        }
+
+        #repeat-checkbox {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        #repeat-label {
+            font-size: 1rem;
+            color: var(--text-color);
+        }
+
+        /* Кнопка "Поддержать автора" */
+        #support-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px 30px;
+            margin: 20px auto;
+            background: linear-gradient(45deg, #FF8C00, #FFD700);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            text-decoration: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: gradientAnimation 3s infinite alternate;
+        }
+
+        #support-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(255, 140, 0, 0.5);
+        }
+
+        @keyframes gradientAnimation {
+            0% {
+                background: linear-gradient(45deg, #FF8C00, #FFD700);
+            }
+            100% {
+                background: linear-gradient(45deg, #FFD700, #FF8C00);
+            }
+        }
+
+        /* Кнопка "Скачать код сайта на GitHub" */
+        #github-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px 30px;
+            margin: 20px auto;
+            background: linear-gradient(45deg, #000, #333);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            text-decoration: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: githubGradientAnimation 3s infinite alternate;
+        }
+
+        #github-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes githubGradientAnimation {
+            0% {
+                background: linear-gradient(45deg, #000, #333);
+            }
+            100% {
+                background: linear-gradient(45deg, #333, #000);
+            }
+        }
+
+        #github-btn i {
+            font-size: 1.5rem;
+        }
+
+        /* Контейнер для видео */
+        .video-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+            justify-content: center;
+        }
+
+        .video-wrapper {
+            flex: 1 1 calc(33.333% - 40px);
+            max-width: 400px;
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease, height 0.3s ease, width 0.3s ease;
+            position: relative;
+        }
+
+        .video-wrapper:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        iframe {
+            width: 100%;
+            height: 225px;
+            border: none;
+        }
+
+        /* Кнопка закрытия видео */
+        .close-btn {
+            position: absolute;
+            top: -10px; /* Выпирает за пределы видео */
+            right: -10px; /* Выпирает за пределы видео */
+            background-color: black;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px; /* Увеличиваем размер */
+            height: 40px; /* Увеличиваем размер */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            font-size: 1.5rem; /* Увеличиваем размер крестика */
+            z-index: 1; /* Чтобы крестик был поверх видео */
+        }
+
+        .close-btn:hover {
+            background-color: red;
+            transform: scale(1.1); /* Анимация увеличения при наведении */
+        }
+
+        /* Анимация удаления видео */
+        .video-wrapper.removing {
+            transform: scale(0);
+            opacity: 0;
+            height: 0;
+            width: 0;
+            margin: 0;
+            padding: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease, height 0.3s ease, width 0.3s ease, margin 0.3s ease, padding 0.3s ease;
+        }
+
+        /* Панель ссылок с иконками */
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            background-color: var(--card-bg);
+            border-top: 1px solid #333;
+        }
+
+        .social-links a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 2rem;
+            transition: color 0.3s ease;
+        }
+
+        .social-links a:hover {
+            color: var(--primary-color);
+        }
+
+        /* Копирайт */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            padding: 10px;
+            background-color: var(--card-bg);
+            border-top: 1px solid #333;
+            font-size: 0.9rem;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .video-wrapper {
+                flex-basis: calc(50% - 20px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            #video-input, #time-input {
+                width: 100%;
+            }
+
+            .video-wrapper {
+                flex-basis: 100%;
+            }
+
+            .social-links {
+                flex-wrap: wrap;
+            }
+        }
+
+        /* Стили для разных платформ */
+        .youtube-style {
+            --bg-color: #0f0f0f;
+            --primary-color: #ff0000;
+        }
+
+        .tiktok-style {
+            --bg-color: #000;
+            --primary-color: #ff0050;
+        }
+
+        .vk-style {
+            --bg-color: #4a76a8;
+            --primary-color: #fff;
+            --text-color: #000;
+            --input-bg: #fff;
+            --card-bg: #f0f2f5;
+        }
+
+        .instagram-style {
+            --bg-color: #f4f4f4;
+            --primary-color: #e4405f;
+            --text-color: #000;
+            --input-bg: #fff;
+            --card-bg: #fff;
+        }
+
+        .twitter-style {
+            --bg-color: #000;
+            --primary-color: #1da1f2;
+        }
+
+        .bilibili-style {
+            --bg-color: #f5f5f5;
+            --primary-color: #00a1d6;
+            --text-color: #000;
+            --input-bg: #fff;
+            --card-bg: #fff;
+        }
+
+        .scratch-style {
+            --bg-color: #f5f5f5;
+            --primary-color: #ff9900;
+            --text-color: #000;
+            --input-bg: #fff;
+            --card-bg: #fff;
+        }
+
+        .telegram-style {
+            --bg-color: #0088cc;
+            --primary-color: #fff;
+            --text-color: #000;
+            --input-bg: #fff;
+            --card-bg: #f0f2f5;
+        }
+
+        .whatsapp-style {
+            --bg-color: #25d366;
+            --primary-color: #fff;
+            --text-color: #000;
+            --input-bg: #fff;
+            --card-bg: #f0f2f5;
+        }
+
+        .discord-style {
+            --bg-color: #5865f2;
+            --primary-color: #fff;
+            --text-color: #000;
+            --input-bg: #fff;
+            --card-bg: #f0f2f5;
+        }
+
+        .rutube-style {
+            --bg-color: #333;
+            --primary-color: #ff0000;
+            --text-color: #fff;
+            --input-bg: #444;
+            --card-bg: #555;
+        }
+
+        .odnoklassniki-style {
+            --bg-color: #f58220;
+            --primary-color: #fff;
+            --text-color: #000;
+            --input-bg: #fff;
+            --card-bg: #f0f2f5;
+        }
+
+        /* Флаги для языков */
+        .flag {
+            width: 20px;
+            height: 15px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        /* Форма для капчи и отображения email */
+        .contact-form {
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: var(--card-bg);
+            border-top: 1px solid #333;
+        }
+
+        .contact-form p {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .contact-form input {
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 20px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            font-size: 1rem;
+            outline: none;
+            margin: 5px;
+        }
+
+        .contact-form button {
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .contact-form button:hover {
+            opacity: 0.9;
+        }
+
+        .contact-form .email-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .contact-form .email-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body class="youtube-style">
+
+<!-- Логотип и название сайта -->
+<div class="header">
+    <img src="https://cdn-icons-png.flaticon.com/128/2859/2859706.png" alt="Логотип" class="logo" id="logo">
+    <h1 id="title">Universal Video Player</h1>
+</div>
+
+<div class="controls">
+    <input type="text" id="video-input" placeholder="Вставьте ссылку на видео">
+    <button id="add-video-btn">Добавить видео</button>
+    <button id="add-multiple-videos-btn" disabled>Добавить несколько видео</button>
+    <select id="video-count">
+        <option value="1">1 видео</option>
+        <option value="2">2 видео</option>
+        <option value="3">3 видео</option>
+        <option value="4">4 видео</option>
+        <option value="5">5 видео</option>
+        <option value="6">6 видео</option>
+        <option value="7">7 видео</option>
+        <option value="8">8 видео</option>
+        <option value="9">9 видео</option>
+        <option value="10">10 видео</option>
+    </select>
+    <input type="text" id="time-input" placeholder="X:XX:XX">
+    <button id="seek-all-btn">Пролистать все видео</button>
+    <button id="play-all-btn">Запустить все видео (только YouTube)</button>
+    <button id="stop-all-btn">Остановить все видео (только YouTube)</button>
+    <button id="delete-all-btn">Удалить все видео</button>
+    <input type="range" id="volume-slider" min="0" max="100" value="100">
+    <label for="volume-slider" id="volume-label">Громкость: 100%</label>
+    <!-- Кнопка с чекбоксом "Повторять все видео" -->
+    <div id="repeat-container">
+        <input type="checkbox" id="repeat-checkbox">
+        <label for="repeat-checkbox" id="repeat-label">Повторять все видео (YouTube)</label>
+    </div>
+    <select id="theme-select">
+        <option value="youtube-style">YouTube</option>
+        <option value="tiktok-style">TikTok</option>
+        <option value="vk-style">VK</option>
+        <option value="instagram-style">Instagram</option>
+        <option value="twitter-style">Twitter (X)</option>
+        <option value="bilibili-style">BiliBili</option>
+        <option value="scratch-style">Scratch</option>
+        <option value="telegram-style">Telegram</option>
+        <option value="whatsapp-style">WhatsApp</option>
+        <option value="discord-style">Discord</option>
+        <option value="rutube-style">Rutube</option>
+        <option value="odnoklassniki-style">Одноклассники</option>
+    </select>
+    <select id="language-select">
+        <option value="ru">🇷🇺 Русский</option>
+        <option value="en">🇺🇸 English</option>
+        <option value="zh">🇨🇳 中文</option>
+    </select>
+</div>
+
+<div class="video-container" id="video-container">
+    <!-- Видео будут добавляться сюда -->
+</div>
+
+<!-- Панель ссылок с иконками -->
+<div class="social-links">
+    <a href="https://youtube.com" target="_blank"><i class="fab fa-youtube"></i></a>
+    <a href="https://tiktok.com" target="_blank"><i class="fab fa-tiktok"></i></a>
+    <a href="https://vk.com" target="_blank"><i class="fab fa-vk"></i></a>
+    <a href="https://instagram.com" target="_blank"><i class="fab fa-instagram"></i></a>
+    <a href="https://twitter.com" target="_blank"><i class="fab fa-twitter"></i></a>
+    <a href="https://bilibili.com" target="_blank"><i class="fas fa-tv"></i></a> <!-- Новая иконка BiliBili -->
+    <a href="https://scratch.mit.edu" target="_blank"><i class="fas fa-s"></i></a> <!-- Новая иконка Scratch -->
+    <a href="https://telegram.org" target="_blank"><i class="fab fa-telegram"></i></a>
+    <a href="https://whatsapp.com" target="_blank"><i class="fab fa-whatsapp"></i></a>
+    <a href="https://discord.com" target="_blank"><i class="fab fa-discord"></i></a>
+    <a href="https://rutube.ru" target="_blank"><i class="fas fa-film"></i></a> <!-- Иконка Rutube -->
+    <a href="https://ok.ru" target="_blank"><i class="fab fa-odnoklassniki"></i></a> <!-- Иконка Одноклассников -->
+</div>
+
+<!-- Кнопка "Поддержать автора" -->
+<a id="support-btn" href="https://boosty.to/orengdog/donate" target="_blank">
+    <img src="https://boosty.to/favicon.ico" alt="Boosty Logo" style="width: 24px; height: 24px;">
+    <span id="support-text">Поддержать автора (работает только в России)</span>
+</a>
+
+<!-- Кнопка "Скачать код сайта на GitHub" -->
+<a id="github-btn" href="https://github.com/orengdog/Universal-Video-Player" target="_blank">
+    <i class="fab fa-github"></i>
+    <span id="github-text">Скачать код сайта</span>
+</a>
+
+<!-- Форма для капчи и отображения email -->
+<div class="contact-form">
+    <p id="contact-text">Свяжитесь с создателем:</p>
+    <form id="contact-form">
+        <div>
+            <label id="captcha-label" for="captcha-input">Введите капчу: <strong id="captcha-text">1234</strong></label>
+            <input type="text" id="captcha-input" placeholder="Введите капчу" required>
+        </div>
+        <button type="submit" id="submit-btn">Отправить</button>
+    </form>
+    <p>Email: <a href="mailto:politaevvladislav@yandex.ru" class="email-link">politaevvladislav@yandex.ru</a></p>
+</div>
+
+<!-- Копирайт -->
+<div class="footer">
+    ©2025 Orengdog Corporation
+</div>
+
+<script>
+    let players = []; // Массив для хранения объектов YouTube Player
+
+    // Локализация
+    const translations = {
+        ru: {
+            title: "Универсальный видеоплеер",
+            inputPlaceholder: "Вставьте ссылку на видео",
+            addVideo: "Добавить видео",
+            addMultipleVideos: "Добавить несколько видео",
+            playAll: "Запустить все видео (только YouTube)",
+            stopAll: "Остановить все видео (только YouTube)",
+            seekAll: "Пролистать все видео",
+            deleteAll: "Удалить все видео",
+            timePlaceholder: "X:XX:XX",
+            unsupportedPlatform: "Автозапуск поддерживается только для YouTube.",
+            supportText: "Поддержать автора (работает только в России)",
+            videoCountOptions: ["1 видео", "2 видео", "3 видео", "4 видео", "5 видео", "6 видео", "7 видео", "8 видео", "9 видео", "10 видео"],
+            contactText: "Свяжитесь с создателем:",
+            captchaLabel: "Введите капчу:",
+            submitText: "Отправить",
+            githubText: "Скачать код сайта",
+            repeatLabel: "Повторять все видео (YouTube)",
+        },
+        en: {
+            title: "Universal Video Player",
+            inputPlaceholder: "Paste a video link",
+            addVideo: "Add Video",
+            addMultipleVideos: "Add Multiple Videos",
+            playAll: "Play All Videos (YouTube only)",
+            stopAll: "Stop All Videos (YouTube only)",
+            seekAll: "Seek All Videos",
+            deleteAll: "Delete All Videos",
+            timePlaceholder: "X:XX:XX",
+            unsupportedPlatform: "Autoplay is supported only for YouTube.",
+            supportText: "Support the author (works only in Russia)",
+            videoCountOptions: ["1 video", "2 videos", "3 videos", "4 videos", "5 videos", "6 videos", "7 videos", "8 videos", "9 videos", "10 videos"],
+            contactText: "Contact the creator:",
+            captchaLabel: "Enter the captcha:",
+            submitText: "Submit",
+            githubText: "Download Source Code",
+            repeatLabel: "Repeat all videos (YouTube)",
+        },
+        zh: {
+            title: "通用视频播放器",
+            inputPlaceholder: "粘贴视频链接",
+            addVideo: "添加视频",
+            addMultipleVideos: "添加多个视频",
+            playAll: "播放所有视频（仅限YouTube）",
+            stopAll: "停止所有视频（仅限YouTube）",
+            seekAll: "跳转所有视频",
+            deleteAll: "删除所有视频",
+            timePlaceholder: "X:XX:XX",
+            unsupportedPlatform: "自动播放仅支持YouTube。",
+            supportText: "支持作者（仅在俄罗斯有效）",
+            videoCountOptions: ["1 视频", "2 视频", "3 视频", "4 视频", "5 视频", "6 视频", "7 视频", "8 视频", "9 视频", "10 视频"],
+            contactText: "联系创建者：",
+            captchaLabel: "输入验证码：",
+            submitText: "提交",
+            githubText: "下载源代码",
+            repeatLabel: "重复所有视频 (YouTube)",
+        },
+    };
+
+    // Установка языка
+    function setLanguage(lang) {
+        document.getElementById("title").textContent = translations[lang].title;
+        document.getElementById("video-input").placeholder = translations[lang].inputPlaceholder;
+        document.getElementById("add-video-btn").textContent = translations[lang].addVideo;
+        document.getElementById("add-multiple-videos-btn").textContent = translations[lang].addMultipleVideos;
+        document.getElementById("play-all-btn").textContent = translations[lang].playAll;
+        document.getElementById("stop-all-btn").textContent = translations[lang].stopAll;
+        document.getElementById("seek-all-btn").textContent = translations[lang].seekAll;
+        document.getElementById("delete-all-btn").textContent = translations[lang].deleteAll;
+        document.getElementById("time-input").placeholder = translations[lang].timePlaceholder;
+        document.getElementById("support-text").textContent = translations[lang].supportText;
+        document.getElementById("github-text").textContent = translations[lang].githubText;
+        document.getElementById("repeat-label").textContent = translations[lang].repeatLabel;
+        document.getElementById("volume-label").textContent = `Громкость: 100%`;
+
+        // Обновляем опции выбора количества видео
+        const videoCountSelect = document.getElementById("video-count");
+        videoCountSelect.innerHTML = "";
+        translations[lang].videoCountOptions.forEach((optionText, index) => {
+            const option = document.createElement("option");
+            option.value = index + 1;
+            option.textContent = optionText;
+            videoCountSelect.appendChild(option);
+        });
+
+        // Обновляем текст капчи
+        document.getElementById("contact-text").textContent = translations[lang].contactText;
+        document.getElementById("captcha-label").textContent = translations[lang].captchaLabel;
+        document.getElementById("submit-btn").textContent = translations[lang].submitText;
+    }
+
+    // Переключение языка
+    document.getElementById("language-select").addEventListener("change", function () {
+        const lang = this.value;
+        setLanguage(lang);
+        currentCaptcha = generateCaptcha(); // Обновляем капчу при смене языка
+    });
+
+    // Инициализация языка
+    setLanguage("ru");
+
+    // Перезагрузка страницы при клике на логотип
+    document.getElementById("logo").addEventListener("click", function () {
+        location.reload();
+    });
+
+    // Добавление видео
+    document.getElementById('add-video-btn').addEventListener('click', function() {
+        addVideo();
+    });
+
+    // Добавление нескольких видео
+    document.getElementById('add-multiple-videos-btn').addEventListener('click', function() {
+        const videoUrl = document.getElementById('video-input').value;
+        if (videoUrl) {
+            const count = parseInt(document.getElementById('video-count').value);
+            for (let i = 0; i < count; i++) {
+                addVideo();
+            }
+        } else {
+            alert('Пожалуйста, введите ссылку на видео.');
+        }
+    });
+
+    // Пролистать все видео на указанный тайм-код
+    document.getElementById('seek-all-btn').addEventListener('click', function() {
+        const timeInput = document.getElementById('time-input').value;
+        if (timeInput) {
+            const timeInSeconds = convertTimeToSeconds(timeInput);
+            if (timeInSeconds !== null) {
+                players.forEach(player => {
+                    player.seekTo(timeInSeconds, true); // Перемотка на указанное время
+                });
+            } else {
+                alert('Пожалуйста, введите корректный тайм-код в формате X:XX:XX.');
+            }
+        } else {
+            alert('Пожалуйста, введите тайм-код.');
+        }
+    });
+
+    // Удалить все видео с анимацией
+    document.getElementById('delete-all-btn').addEventListener('click', function() {
+        const videoWrappers = document.querySelectorAll('.video-wrapper');
+        videoWrappers.forEach(wrapper => {
+            removeVideoWithAnimation(wrapper);
+        });
+        players = []; // Очищаем массив плееров
+    });
+
+    // Функция добавления видео
+    function addVideo() {
+        const videoUrl = document.getElementById('video-input').value;
+        if (videoUrl) {
+            if (videoUrl === "https://orengdog.github.io/Universal-Video-Player/") {
+                // Пасхалка
+                alert(translations[document.getElementById("language-select").value].easterEggMessage);
+                const embedCode = `
+                    <div style="width: 100%; height: 225px; background: #000; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.5rem;">
+                        🎉 ${translations[document.getElementById("language-select").value].easterEggMessage} 🎉
+                    </div>
+                `;
+                const videoWrapper = document.createElement('div');
+                videoWrapper.className = 'video-wrapper';
+                videoWrapper.innerHTML = `
+                    ${embedCode}
+                    <button class="close-btn">&times;</button>
+                `;
+                document.getElementById('video-container').appendChild(videoWrapper);
+
+                // Добавляем обработчик закрытия видео
+                const closeBtn = videoWrapper.querySelector('.close-btn');
+                closeBtn.addEventListener('click', () => {
+                    removeVideoWithAnimation(videoWrapper);
+                });
+                return;
+            }
+
+            const embedCode = getEmbedCode(videoUrl);
+            if (embedCode) {
+                const videoWrapper = document.createElement('div');
+                videoWrapper.className = 'video-wrapper';
+                videoWrapper.innerHTML = `
+                    ${embedCode}
+                    <button class="close-btn">&times;</button>
+                `;
+                document.getElementById('video-container').appendChild(videoWrapper);
+
+                // Добавляем обработчик закрытия видео
+                const closeBtn = videoWrapper.querySelector('.close-btn');
+                closeBtn.addEventListener('click', () => {
+                    removeVideoWithAnimation(videoWrapper);
+                });
+
+                // Инициализация YouTube Player
+                if (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be")) {
+                    const iframe = videoWrapper.querySelector('iframe');
+                    const player = new YT.Player(iframe, {
+                        events: {
+                            'onReady': onPlayerReady
+                        }
+                    });
+                    players.push(player); // Добавляем плеер в массив
+                }
+            } else {
+                alert('Пожалуйста, введите корректную ссылку на видео.');
+            }
+        } else {
+            alert('Пожалуйста, введите ссылку на видео.');
+        }
+    }
+
+    // Функция удаления видео с анимацией
+    function removeVideoWithAnimation(videoWrapper) {
+        videoWrapper.classList.add('removing');
+        setTimeout(() => {
+            videoWrapper.remove();
+        }, 300); // Время анимации (0.3 секунды)
+    }
+
+    // Запуск всех видео (только YouTube)
+    document.getElementById('play-all-btn').addEventListener('click', function() {
+        players.forEach(player => {
+            player.playVideo(); // Запускаем видео через YouTube IFrame API
+        });
+    });
+
+    // Остановка всех видео (только YouTube)
+    document.getElementById('stop-all-btn').addEventListener('click', function() {
+        players.forEach(player => {
+            player.pauseVideo(); // Останавливаем видео через YouTube IFrame API
+        });
+    });
+
+    // Слайдер громкости
+    const volumeSlider = document.getElementById('volume-slider');
+    const volumeLabel = document.getElementById('volume-label');
+
+    volumeSlider.addEventListener('input', function() {
+        const volume = this.value;
+        volumeLabel.textContent = `Громкость: ${volume}%`;
+        players.forEach(player => {
+            player.setVolume(volume); // Устанавливаем громкость для всех видео
+        });
+    });
+
+    // Чекбокс "Повторять все видео"
+    const repeatCheckbox = document.getElementById('repeat-checkbox');
+    const repeatContainer = document.getElementById('repeat-container');
+
+    repeatCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            repeatContainer.classList.add('active');
+            players.forEach(player => {
+                if (player.getPlayerState) { // Проверяем, что это YouTube Player
+                    player.setLoop(true); // Включаем повтор для всех видео
+                }
+            });
+        } else {
+            repeatContainer.classList.remove('active');
+            players.forEach(player => {
+                if (player.getPlayerState) { // Проверяем, что это YouTube Player
+                    player.setLoop(false); // Выключаем повтор для всех видео
+                }
+            });
+        }
+    });
+
+    // Смена темы
+    document.getElementById('theme-select').addEventListener('change', function() {
+        document.body.className = this.value;
+    });
+
+    // Активация кнопки "Добавить несколько видео" при вводе ссылки
+    document.getElementById('video-input').addEventListener('input', function() {
+        const videoUrl = this.value;
+        const addMultipleBtn = document.getElementById('add-multiple-videos-btn');
+        if (videoUrl) {
+            addMultipleBtn.disabled = false;
+        } else {
+            addMultipleBtn.disabled = true;
+        }
+    });
+
+    // Преобразование тайм-кода в секунды
+    function convertTimeToSeconds(time) {
+        const parts = time.split(':');
+        if (parts.length === 3) {
+            const hours = parseInt(parts[0]);
+            const minutes = parseInt(parts[1]);
+            const seconds = parseInt(parts[2]);
+            if (!isNaN(hours) && !isNaN(minutes) && !isNaN(seconds)) {
+                return hours * 3600 + minutes * 60 + seconds;
+            }
+        } else if (parts.length === 2) {
+            const minutes = parseInt(parts[0]);
+            const seconds = parseInt(parts[1]);
+            if (!isNaN(minutes) && !isNaN(seconds)) {
+                return minutes * 60 + seconds;
+            }
+        } else if (parts.length === 1) {
+            const seconds = parseInt(parts[0]);
+            if (!isNaN(seconds)) {
+                return seconds;
+            }
+        }
+        return null;
+    }
+
+    // Генерация iframe для разных платформ
+    function getEmbedCode(url) {
+        if (url.includes("youtube.com") || url.includes("youtu.be")) {
+            const videoId = getYouTubeId(url);
+            return `<iframe src="https://www.youtube.com/embed/${videoId}?enablejsapi=1" allowfullscreen></iframe>`;
+        } else if (url.includes("tiktok.com")) {
+            return `<iframe src="https://www.tiktok.com/embed/${url.split('/').pop()}" allowfullscreen></iframe>`;
+        } else if (url.includes("vk.com")) {
+            if (url.includes("/video")) {
+                const videoId = url.split("/video")[1].replace(/\D/g, ''); // Извлекаем ID видео
+                return `<iframe src="https://vk.com/video_ext.php?oid=-${videoId.split('_')[0]}&id=${videoId.split('_')[1]}" allowfullscreen></iframe>`;
+            } else if (url.includes("/clip")) {
+                const clipId = url.split("/clip/")[1].split("/")[0];
+                                return `<iframe src="https://vk.com/video_ext.php?clip_id=${clipId}" allowfullscreen></iframe>`;
+                            }
+                        } else if (url.includes("instagram.com")) {
+                            return `<iframe src="https://www.instagram.com/p/${url.split('/').pop()}/embed/" allowfullscreen></iframe>`;
+                        } else if (url.includes("twitter.com") || url.includes("x.com")) {
+                            return `<iframe src="https://twitframe.com/show?url=${encodeURIComponent(url)}" allowfullscreen></iframe>`;
+                        } else if (url.includes("bilibili.com")) {
+                            return `<iframe src="https://player.bilibili.com/player.html?bvid=${url.split('/').pop()}" allowfullscreen></iframe>`;
+                        } else if (url.includes("scratch.mit.edu")) {
+                            const projectId = url.split('/projects/')[1].split('/')[0];
+                            return `<iframe src="https://scratch.mit.edu/projects/${projectId}/embed" allowfullscreen></iframe>`;
+                        } else if (url.includes("t.me")) {
+                            return `<iframe src="https://t.me/${url.split('/').pop()}" allowfullscreen></iframe>`;
+                        } else if (url.includes("whatsapp.com")) {
+                            return `<iframe src="${url}" allowfullscreen></iframe>`;
+                        } else if (url.includes("discord.com")) {
+                            return `<iframe src="${url}" allowfullscreen></iframe>`;
+                        } else if (url.includes("rutube.ru")) {
+                            const videoId = url.split('/video/')[1].split('/')[0];
+                            return `<iframe src="https://rutube.ru/embed/${videoId}" allowfullscreen></iframe>`;
+                        } else if (url.includes("ok.ru")) {
+                            const videoId = url.split('/video/')[1];
+                            return `<iframe src="https://ok.ru/videoembed/${videoId}" allowfullscreen></iframe>`;
+                        }
+                        return null;
+                    }
+
+                    // Извлечение ID YouTube видео
+                    function getYouTubeId(url) {
+                        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
+                        const match = url.match(regExp);
+                        return (match && match[2].length === 11) ? match[2] : null;
+                    }
+
+                    // Инициализация YouTube IFrame API
+                    function onPlayerReady(event) {
+                        // Можно добавить дополнительные действия при готовности плеера
+                    }
+
+                    // Загрузка YouTube IFrame API
+                    const tag = document.createElement('script');
+                    tag.src = "https://www.youtube.com/iframe_api";
+                    const firstScriptTag = document.getElementsByTagName('script')[0];
+                    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+                    // Генерация случайной капчи
+                    function generateCaptcha() {
+                        const captchaText = Math.floor(1000 + Math.random() * 9000).toString(); // Генерация 4-значного числа
+                        document.getElementById('captcha-text').textContent = captchaText;
+                        return captchaText;
+                    }
+
+                    // Инициализация капчи
+                    let currentCaptcha = generateCaptcha();
+
+                    // Обработка отправки формы
+                    document.getElementById('contact-form').addEventListener('submit', function(event) {
+                        event.preventDefault();
+                        const captchaInput = document.getElementById('captcha-input').value;
+
+                        if (captchaInput === currentCaptcha) {
+                            alert('Капча введена верно! Свяжитесь с создателем по email: politaevvladislav@yandex.ru');
+                            document.getElementById('captcha-input').value = '';
+                            currentCaptcha = generateCaptcha(); // Генерация новой капчи
+                        } else {
+                            alert('Неверная капча. Пожалуйста, попробуйте снова.');
+                            document.getElementById('captcha-input').value = '';
+                            currentCaptcha = generateCaptcha(); // Генерация новой капчи
+                        }
+                    });
+                </script>
+
+                </body>
+                </html>
