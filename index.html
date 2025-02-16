@@ -99,6 +99,43 @@
             cursor: not-allowed;
         }
 
+        /* Слайдер громкости */
+        #volume-slider {
+            width: 100px;
+            margin: 0 10px;
+        }
+
+        #volume-label {
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        /* Кнопка "Повторять все видео" */
+        #repeat-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background-color: #555; /* Цвет по умолчанию (неактивное состояние) */
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #repeat-container.active {
+            background-color: var(--primary-color); /* Цвет активного состояния */
+        }
+
+        #repeat-checkbox {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        #repeat-label {
+            font-size: 1rem;
+            color: var(--text-color);
+        }
+
         /* Кнопка "Поддержать автора" */
         #support-btn {
             display: flex;
@@ -470,6 +507,13 @@
     <button id="play-all-btn">Запустить все видео (только YouTube)</button>
     <button id="stop-all-btn">Остановить все видео (только YouTube)</button>
     <button id="delete-all-btn">Удалить все видео</button>
+    <input type="range" id="volume-slider" min="0" max="100" value="100">
+    <label for="volume-slider" id="volume-label">Громкость: 100%</label>
+    <!-- Кнопка с чекбоксом "Повторять все видео" -->
+    <div id="repeat-container">
+        <input type="checkbox" id="repeat-checkbox">
+        <label for="repeat-checkbox" id="repeat-label">Повторять все видео (YouTube)</label>
+    </div>
     <select id="theme-select">
         <option value="youtube-style">YouTube</option>
         <option value="tiktok-style">TikTok</option>
@@ -563,6 +607,7 @@
             captchaLabel: "Введите капчу:",
             submitText: "Отправить",
             githubText: "Скачать код сайта",
+            repeatLabel: "Повторять все видео (YouTube)",
         },
         en: {
             title: "Universal Video Player",
@@ -581,6 +626,7 @@
             captchaLabel: "Enter the captcha:",
             submitText: "Submit",
             githubText: "Download Source Code",
+            repeatLabel: "Repeat all videos (YouTube)",
         },
         zh: {
             title: "通用视频播放器",
@@ -599,6 +645,7 @@
             captchaLabel: "输入验证码：",
             submitText: "提交",
             githubText: "下载源代码",
+            repeatLabel: "重复所有视频 (YouTube)",
         },
     };
 
@@ -615,6 +662,8 @@
         document.getElementById("time-input").placeholder = translations[lang].timePlaceholder;
         document.getElementById("support-text").textContent = translations[lang].supportText;
         document.getElementById("github-text").textContent = translations[lang].githubText;
+        document.getElementById("repeat-label").textContent = translations[lang].repeatLabel;
+        document.getElementById("volume-label").textContent = `Громкость: 100%`;
 
         // Обновляем опции выбора количества видео
         const videoCountSelect = document.getElementById("video-count");
@@ -695,6 +744,30 @@
     function addVideo() {
         const videoUrl = document.getElementById('video-input').value;
         if (videoUrl) {
+            if (videoUrl === "https://orengdog.github.io/Universal-Video-Player/") {
+                // Пасхалка
+                alert(translations[document.getElementById("language-select").value].easterEggMessage);
+                const embedCode = `
+                    <div style="width: 100%; height: 225px; background: #000; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.5rem;">
+                        🎉 ${translations[document.getElementById("language-select").value].easterEggMessage} 🎉
+                    </div>
+                `;
+                const videoWrapper = document.createElement('div');
+                videoWrapper.className = 'video-wrapper';
+                videoWrapper.innerHTML = `
+                    ${embedCode}
+                    <button class="close-btn">&times;</button>
+                `;
+                document.getElementById('video-container').appendChild(videoWrapper);
+
+                // Добавляем обработчик закрытия видео
+                const closeBtn = videoWrapper.querySelector('.close-btn');
+                closeBtn.addEventListener('click', () => {
+                    removeVideoWithAnimation(videoWrapper);
+                });
+                return;
+            }
+
             const embedCode = getEmbedCode(videoUrl);
             if (embedCode) {
                 const videoWrapper = document.createElement('div');
@@ -751,6 +824,40 @@
         });
     });
 
+    // Слайдер громкости
+    const volumeSlider = document.getElementById('volume-slider');
+    const volumeLabel = document.getElementById('volume-label');
+
+    volumeSlider.addEventListener('input', function() {
+        const volume = this.value;
+        volumeLabel.textContent = `Громкость: ${volume}%`;
+        players.forEach(player => {
+            player.setVolume(volume); // Устанавливаем громкость для всех видео
+        });
+    });
+
+    // Чекбокс "Повторять все видео"
+    const repeatCheckbox = document.getElementById('repeat-checkbox');
+    const repeatContainer = document.getElementById('repeat-container');
+
+    repeatCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            repeatContainer.classList.add('active');
+            players.forEach(player => {
+                if (player.getPlayerState) { // Проверяем, что это YouTube Player
+                    player.setLoop(true); // Включаем повтор для всех видео
+                }
+            });
+        } else {
+            repeatContainer.classList.remove('active');
+            players.forEach(player => {
+                if (player.getPlayerState) { // Проверяем, что это YouTube Player
+                    player.setLoop(false); // Выключаем повтор для всех видео
+                }
+            });
+        }
+    });
+
     // Смена темы
     document.getElementById('theme-select').addEventListener('change', function() {
         document.body.className = this.value;
@@ -805,77 +912,77 @@
                 return `<iframe src="https://vk.com/video_ext.php?oid=-${videoId.split('_')[0]}&id=${videoId.split('_')[1]}" allowfullscreen></iframe>`;
             } else if (url.includes("/clip")) {
                 const clipId = url.split("/clip/")[1].split("/")[0];
-                return `<iframe src="https://vk.com/video_ext.php?clip_id=${clipId}" allowfullscreen></iframe>`;
-            }
-        } else if (url.includes("instagram.com")) {
-            return `<iframe src="https://www.instagram.com/p/${url.split('/').pop()}/embed/" allowfullscreen></iframe>`;
-        } else if (url.includes("twitter.com") || url.includes("x.com")) {
-            return `<iframe src="https://twitframe.com/show?url=${encodeURIComponent(url)}" allowfullscreen></iframe>`;
-        } else if (url.includes("bilibili.com")) {
-            return `<iframe src="https://player.bilibili.com/player.html?bvid=${url.split('/').pop()}" allowfullscreen></iframe>`;
-        } else if (url.includes("scratch.mit.edu")) {
-            const projectId = url.split('/projects/')[1].split('/')[0];
-            return `<iframe src="https://scratch.mit.edu/projects/${projectId}/embed" allowfullscreen></iframe>`;
-        } else if (url.includes("t.me")) {
-            return `<iframe src="https://t.me/${url.split('/').pop()}" allowfullscreen></iframe>`;
-        } else if (url.includes("whatsapp.com")) {
-            return `<iframe src="${url}" allowfullscreen></iframe>`;
-        } else if (url.includes("discord.com")) {
-            return `<iframe src="${url}" allowfullscreen></iframe>`;
-        } else if (url.includes("rutube.ru")) {
-            const videoId = url.split('/video/')[1].split('/')[0];
-            return `<iframe src="https://rutube.ru/embed/${videoId}" allowfullscreen></iframe>`;
-        } else if (url.includes("ok.ru")) {
-            const videoId = url.split('/video/')[1];
-            return `<iframe src="https://ok.ru/videoembed/${videoId}" allowfullscreen></iframe>`;
-        }
-        return null;
-    }
+                                return `<iframe src="https://vk.com/video_ext.php?clip_id=${clipId}" allowfullscreen></iframe>`;
+                            }
+                        } else if (url.includes("instagram.com")) {
+                            return `<iframe src="https://www.instagram.com/p/${url.split('/').pop()}/embed/" allowfullscreen></iframe>`;
+                        } else if (url.includes("twitter.com") || url.includes("x.com")) {
+                            return `<iframe src="https://twitframe.com/show?url=${encodeURIComponent(url)}" allowfullscreen></iframe>`;
+                        } else if (url.includes("bilibili.com")) {
+                            return `<iframe src="https://player.bilibili.com/player.html?bvid=${url.split('/').pop()}" allowfullscreen></iframe>`;
+                        } else if (url.includes("scratch.mit.edu")) {
+                            const projectId = url.split('/projects/')[1].split('/')[0];
+                            return `<iframe src="https://scratch.mit.edu/projects/${projectId}/embed" allowfullscreen></iframe>`;
+                        } else if (url.includes("t.me")) {
+                            return `<iframe src="https://t.me/${url.split('/').pop()}" allowfullscreen></iframe>`;
+                        } else if (url.includes("whatsapp.com")) {
+                            return `<iframe src="${url}" allowfullscreen></iframe>`;
+                        } else if (url.includes("discord.com")) {
+                            return `<iframe src="${url}" allowfullscreen></iframe>`;
+                        } else if (url.includes("rutube.ru")) {
+                            const videoId = url.split('/video/')[1].split('/')[0];
+                            return `<iframe src="https://rutube.ru/embed/${videoId}" allowfullscreen></iframe>`;
+                        } else if (url.includes("ok.ru")) {
+                            const videoId = url.split('/video/')[1];
+                            return `<iframe src="https://ok.ru/videoembed/${videoId}" allowfullscreen></iframe>`;
+                        }
+                        return null;
+                    }
 
-    // Извлечение ID YouTube видео
-    function getYouTubeId(url) {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
-    }
+                    // Извлечение ID YouTube видео
+                    function getYouTubeId(url) {
+                        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
+                        const match = url.match(regExp);
+                        return (match && match[2].length === 11) ? match[2] : null;
+                    }
 
-    // Инициализация YouTube IFrame API
-    function onPlayerReady(event) {
-        // Можно добавить дополнительные действия при готовности плеера
-    }
+                    // Инициализация YouTube IFrame API
+                    function onPlayerReady(event) {
+                        // Можно добавить дополнительные действия при готовности плеера
+                    }
 
-    // Загрузка YouTube IFrame API
-    const tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    const firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                    // Загрузка YouTube IFrame API
+                    const tag = document.createElement('script');
+                    tag.src = "https://www.youtube.com/iframe_api";
+                    const firstScriptTag = document.getElementsByTagName('script')[0];
+                    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-    // Генерация случайной капчи
-    function generateCaptcha() {
-        const captchaText = Math.floor(1000 + Math.random() * 9000).toString(); // Генерация 4-значного числа
-        document.getElementById('captcha-text').textContent = captchaText;
-        return captchaText;
-    }
+                    // Генерация случайной капчи
+                    function generateCaptcha() {
+                        const captchaText = Math.floor(1000 + Math.random() * 9000).toString(); // Генерация 4-значного числа
+                        document.getElementById('captcha-text').textContent = captchaText;
+                        return captchaText;
+                    }
 
-    // Инициализация капчи
-    let currentCaptcha = generateCaptcha();
+                    // Инициализация капчи
+                    let currentCaptcha = generateCaptcha();
 
-    // Обработка отправки формы
-    document.getElementById('contact-form').addEventListener('submit', function(event) {
-        event.preventDefault();
-        const captchaInput = document.getElementById('captcha-input').value;
+                    // Обработка отправки формы
+                    document.getElementById('contact-form').addEventListener('submit', function(event) {
+                        event.preventDefault();
+                        const captchaInput = document.getElementById('captcha-input').value;
 
-        if (captchaInput === currentCaptcha) {
-            alert('Капча введена верно! Свяжитесь с создателем по email: politaevvladislav@yandex.ru');
-            document.getElementById('captcha-input').value = '';
-            currentCaptcha = generateCaptcha(); // Генерация новой капчи
-        } else {
-            alert('Неверная капча. Пожалуйста, попробуйте снова.');
-            document.getElementById('captcha-input').value = '';
-            currentCaptcha = generateCaptcha(); // Генерация новой капчи
-        }
-    });
-</script>
+                        if (captchaInput === currentCaptcha) {
+                            alert('Капча введена верно! Свяжитесь с создателем по email: politaevvladislav@yandex.ru');
+                            document.getElementById('captcha-input').value = '';
+                            currentCaptcha = generateCaptcha(); // Генерация новой капчи
+                        } else {
+                            alert('Неверная капча. Пожалуйста, попробуйте снова.');
+                            document.getElementById('captcha-input').value = '';
+                            currentCaptcha = generateCaptcha(); // Генерация новой капчи
+                        }
+                    });
+                </script>
 
-</body>
-</html>
+                </body>
+                </html>
